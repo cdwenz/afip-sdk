@@ -50,7 +50,10 @@ export class WSAA {
       `
 
     const { data } = await axios.post(this.url, soap, {
-      headers: { "Content-Type": "text/xml" }
+      headers: {
+        "Content-Type": "text/xml;charset=UTF-8",
+        "SOAPAction": ""
+      }
     })
 
     const parsed = await parseXML(data)

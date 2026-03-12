@@ -86,7 +86,51 @@ Respuesta:
 }
 ```
 
-## Métodos disponibles≤
+## Qué significa cada campo
+
+**puntoVenta**
+
+Punto de venta AFIP.
+```bash
+1
+```
+
+**tipoComprobante**
+
+AFIP usa códigos.
+
+| tipo           | código |
+| -------------- | ------ |
+| Factura A      | 1      |
+| Factura B      | 6      |
+| Factura C      | 11     |
+| Nota Crédito A | 3      |
+| Nota Crédito B | 8      |
+| Nota Crédito C | 13     |
+
+
+**docTipo**
+
+Tipo de documento del cliente.
+
+| tipo             | código |
+| ---------------- | ------ |
+| Consumidor final | 99     |
+| DNI              | 96     |
+| CUIT             | 80     |
+
+**docNro**
+
+Número del documento.
+
+Ejemplo consumidor final:
+
+```bash
+0
+```
+
+
+## Métodos disponibles
 
 login()
 
@@ -110,42 +154,9 @@ Genera una factura electrónica utilizando FECAESolicitar.
 
 Características:
 
-- cálculo automático de totales
-- múltiples ítems
-- múltiples alícuotas de IVA
-
-## Arquitectura
-
-El SDK está organizado en módulos simples:
-
-```bash
-src
-│
-├ auth
-│   └ wsaa.ts
-│
-├ wsfe
-│   └ wsfe.ts
-│
-├ utils
-│   ├ tra.ts
-│   ├ signer.ts
-│   ├ invoiceCalculator.ts
-│   └ validateInvoice.ts
-│
-├ types
-│   ├ config.ts
-│   └ invoice.ts
-│
-└ index.ts
-```
-
-Esto permite mantener una separación clara entre:
-
-- autenticación
-- facturación
-- utilidades
-- tipos
+- Cálculo automático de totales
+- Múltiples ítems
+- Múltiples alícuotas de IVA
 
 ## Entornos AFIP
 

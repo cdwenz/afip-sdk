@@ -39,7 +39,10 @@ export class WSFE {
 `
 
     const { data } = await axios.post(this.url, xml, {
-      headers: { "Content-Type": "text/xml;charset=UTF-8" }
+      headers: {
+        "Content-Type": "text/xml;charset=UTF-8",
+        "SOAPAction": ""
+      }
     })
 
     const parsed = await parseXML(data)
@@ -138,7 +141,10 @@ export class WSFE {
 `
 
       const { data: resp } = await axios.post(this.url, xml, {
-        headers: { "Content-Type": "text/xml;charset=UTF-8" }
+        headers: {
+          "Content-Type": "text/xml;charset=UTF-8",
+          "SOAPAction": ""
+        }
       })
 
       const parsed = await parseXML(resp)
@@ -168,69 +174,4 @@ export class WSFE {
 
     }
   }
-  //   async createInvoice(data: CreateInvoiceData) {
-
-  //     const last = await this.getLastVoucher(
-  //       data.puntoVenta,
-  //       data.tipoComprobante
-  //     )
-
-  //     const next = last + 1
-
-  //     const total = data.items.reduce(
-  //       (sum, i) => sum + i.price * i.quantity,
-  //       0
-  //     )
-
-  //     const xml = `
-  // <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
-  //  <soapenv:Body>
-  //   <FECAESolicitar>
-  //    <Auth>
-  //     <Token>${(await this.auth.login()).token}</Token>
-  //     <Sign>${(await this.auth.login()).sign}</Sign>
-  //     <Cuit>${this.cuit}</Cuit>
-  //    </Auth>
-  //    <FeCAEReq>
-  //     <FeCabReq>
-  //      <CantReg>1</CantReg>
-  //      <PtoVta>${data.puntoVenta}</PtoVta>
-  //      <CbteTipo>${data.tipoComprobante}</CbteTipo>
-  //     </FeCabReq>
-  //     <FeDetReq>
-  //      <FECAEDetRequest>
-  //       <Concepto>1</Concepto>
-  //       <DocTipo>${data.docTipo}</DocTipo>
-  //       <DocNro>${data.docNro}</DocNro>
-  //       <CbteDesde>${next}</CbteDesde>
-  //       <CbteHasta>${next}</CbteHasta>
-  //       <CbteFch>${new Date().toISOString().slice(0, 10).replace(/-/g, "")}</CbteFch>
-  //       <ImpTotal>${total}</ImpTotal>
-  //       <ImpNeto>${total}</ImpNeto>
-  //       <ImpIVA>0</ImpIVA>
-  //       <MonId>${data.moneda || "PES"}</MonId>
-  //       <MonCotiz>1</MonCotiz>
-  //      </FECAEDetRequest>
-  //     </FeDetReq>
-  //    </FeCAEReq>
-  //   </FECAESolicitar>
-  //  </soapenv:Body>
-  // </soapenv:Envelope>
-  // `
-
-  //     const { data: resp } = await axios.post(this.url, xml, {
-  //       headers: { "Content-Type": "text/xml;charset=UTF-8" }
-  //     })
-
-  //     const parsed = await parseXML(resp)
-
-  //     const result =
-  //       parsed["soap:Envelope"]["soap:Body"]
-  //         .FECAESolicitarResponse
-  //         .FECAESolicitarResult
-
-  //     checkAFIPErrors(result)
-
-  //     return result
-  //   }
 }
