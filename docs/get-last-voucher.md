@@ -1,0 +1,1 @@
+const last = await afip.getLastVoucher(1,6)
