@@ -11,12 +11,15 @@ export function signTRA(xml: string, certPath: string, keyPath: string) {
     [
       "cms",
       "-sign",
+      "-in",
+      "/dev/stdin",
       "-signer",
       certPath,
       "-inkey",
       keyPath,
       "-nodetach",
       "-outform",
+      "-nosmimecap",
       "DER",
       "-binary"
     ],
@@ -26,7 +29,7 @@ export function signTRA(xml: string, certPath: string, keyPath: string) {
   )
 
   if (proc.status !== 0) {
-    throw new Error("Error firmando TRA con OpenSSL")
+    throw new Error(proc.stderr.toString())
   }
 
   return proc.stdout.toString("base64")

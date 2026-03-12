@@ -2,11 +2,12 @@ import axios from "axios"
 import { parseXML } from "../utils/xml"
 import { WSAA } from "../auth/wsaa"
 import { CreateInvoiceData } from "../types/invoice"
-import { checkAFIPErrors } from "../utils/afipError"
+import { checkAFIPErrors } from "../utils/checkAFIPErrors"
 import { calculateInvoice } from "../utils/invoiceCalculator"
 import { validateInvoice } from "../utils/validateInvoice"
 import { IVA_MAP } from "../utils/ivaMap"
 import { lockVoucher, unlockVoucher } from "../utils/voucherLock"
+import { parseSoapFault } from "../utils/parseSoapFault"
 
 export class WSFE {
 
@@ -38,12 +39,25 @@ export class WSFE {
 </soapenv:Envelope>
 `
 
-    const { data } = await axios.post(this.url, xml, {
-      headers: {
-        "Content-Type": "text/xml;charset=UTF-8",
-        "SOAPAction": ""
-      }
-    })
+    let data
+
+    try {
+
+      const response = await axios.post(this.url, xml, {
+        headers: {
+          "Content-Type": "text/xml;charset=UTF-8",
+          "SOAPAction": ""
+        }
+      })
+
+      data = response.data
+
+    } catch (err: any) {
+
+      parseSoapFault(err.response?.data)
+
+      throw err
+    }
 
     const parsed = await parseXML(data)
 
@@ -140,12 +154,25 @@ export class WSFE {
 </soapenv:Envelope>
 `
 
-      const { data: resp } = await axios.post(this.url, xml, {
-        headers: {
-          "Content-Type": "text/xml;charset=UTF-8",
-          "SOAPAction": ""
-        }
-      })
+      let resp
+
+      try {
+
+        const response = await axios.post(this.url, xml, {
+          headers: {
+            "Content-Type": "text/xml;charset=UTF-8",
+            "SOAPAction": ""
+          }
+        })
+
+        resp = response.data
+
+      } catch (err: any) {
+
+        parseSoapFault(err.response?.data)
+
+        throw err
+      }
 
       const parsed = await parseXML(resp)
 

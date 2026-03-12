@@ -3,6 +3,7 @@ import { createTRA } from "../utils/tra"
 import { signTRA } from "../utils/signer"
 import { parseXML } from "../utils/xml"
 import { AFIPConfig } from "../types/config"
+import { parseSoapFault } from "../utils/parseSoapFault"
 
 export class WSAA {
 
@@ -49,12 +50,27 @@ export class WSAA {
       </soapenv:Envelope>
       `
 
-    const { data } = await axios.post(this.url, soap, {
-      headers: {
-        "Content-Type": "text/xml;charset=UTF-8",
-        "SOAPAction": ""
-      }
-    })
+    let data
+
+    try {
+
+      const response = await axios.post(this.url, soap, {
+        headers: {
+          "Content-Type": "text/xml;charset=UTF-8",
+          "SOAPAction": ""
+        }
+      })
+
+      data = response.data
+
+    } catch (err: any) {
+
+      const xml = err.response?.data
+
+      parseSoapFault(xml)
+
+      throw err
+    }
 
     const parsed = await parseXML(data)
 
