@@ -1,6 +1,6 @@
 {
   "name": "@cdwenz/afip-sdk",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "SDK Node.js para facturación electrónica AFIP WSFEv1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

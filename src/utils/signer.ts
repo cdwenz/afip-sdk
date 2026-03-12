@@ -19,9 +19,8 @@ export function signTRA(xml: string, certPath: string, keyPath: string) {
       keyPath,
       "-nodetach",
       "-outform",
-      "-nosmimecap",
       "DER",
-      "-binary"
+      "-binary",
     ],
     {
       input: xml

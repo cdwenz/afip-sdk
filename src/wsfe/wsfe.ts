@@ -8,6 +8,7 @@ import { validateInvoice } from "../utils/validateInvoice"
 import { IVA_MAP } from "../utils/ivaMap"
 import { lockVoucher, unlockVoucher } from "../utils/voucherLock"
 import { parseSoapFault } from "../utils/parseSoapFault"
+import { getSoapBody } from "../utils/getSoapBody"
 
 export class WSFE {
 
@@ -61,9 +62,10 @@ export class WSFE {
 
     const parsed = await parseXML(data)
 
+    const body = getSoapBody(parsed)
+
     return Number(
-      parsed["soap:Envelope"]["soap:Body"]
-        .FECompUltimoAutorizadoResponse
+      body.FECompUltimoAutorizadoResponse
         .FECompUltimoAutorizadoResult
         .CbteNro
     )
@@ -176,9 +178,10 @@ export class WSFE {
 
       const parsed = await parseXML(resp)
 
+      const body = getSoapBody(parsed)
+
       const result =
-        parsed["soap:Envelope"]["soap:Body"]
-          .FECAESolicitarResponse
+        body.FECAESolicitarResponse
           .FECAESolicitarResult
 
       checkAFIPErrors(result)
