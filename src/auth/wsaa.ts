@@ -4,6 +4,7 @@ import { signTRA } from "../utils/signer"
 import { parseXML } from "../utils/xml"
 import { AFIPConfig } from "../types/config"
 import { parseSoapFault } from "../utils/parseSoapFault"
+import { getSoapBody } from "../utils/getSoapBody"
 
 export class WSAA {
 
@@ -74,8 +75,10 @@ export class WSAA {
 
     const parsed = await parseXML(data)
 
+    const body = getSoapBody(parsed)
+
     const cmsResponse =
-      parsed["soap:Envelope"]["soap:Body"].loginCmsResponse.loginCmsReturn
+      body.loginCmsResponse.loginCmsReturn
 
     const decoded = Buffer.from(cmsResponse, "base64").toString()
 
