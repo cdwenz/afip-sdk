@@ -10,6 +10,10 @@ export interface CreateInvoiceData {
   tipoComprobante: number
   docTipo: number
   docNro: number
-  items: InvoiceItem[]
   moneda?: string
+
+  // RG 5616
+  condicionIVAReceptorId?: number
+
+  items: InvoiceItem[]
 }

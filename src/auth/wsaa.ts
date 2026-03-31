@@ -64,6 +64,8 @@ export class WSAA {
 
       data = response.data
 
+      console.log("WSAA RAW RESPONSE:\n", data)
+
     } catch (err: any) {
 
       const xml = err.response?.data
@@ -77,10 +79,49 @@ export class WSAA {
 
     const body = getSoapBody(parsed)
 
-    const cmsResponse =
-      body.loginCmsResponse.loginCmsReturn
+    const fault =
+      body.Fault ||
+      body["soapenv:Fault"]
 
-    const decoded = Buffer.from(cmsResponse, "base64").toString()
+    if (fault) {
+      throw new Error(
+        `${fault.faultcode}: ${fault.faultstring}`
+      )
+    }
+
+    const login = body.loginCmsResponse
+
+    const cmsNode =
+      login.loginCmsReturn ||
+      login["ns1:loginCmsReturn"] ||
+      login["loginCmsReturn"]
+
+    if (!cmsNode) {
+      console.error("WSAA BODY:", JSON.stringify(body, null, 2))
+      throw new Error("WSAA response inválida: loginCmsReturn no encontrado")
+    }
+
+    // xml2js puede devolver string o { _: "texto" }
+    const cmsText =
+      typeof cmsNode === "string"
+        ? cmsNode
+        : cmsNode._ || cmsNode["#text"]
+
+    if (!cmsText) {
+      throw new Error("WSAA response inválida: contenido de loginCmsReturn vacío")
+    }
+
+    let decoded
+
+    if (cmsText.trim().startsWith("<")) {
+      decoded = cmsText
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, "&")
+    } else {
+      decoded = Buffer.from(cmsText, "base64").toString()
+    }
 
     const ticket = await parseXML(decoded)
 

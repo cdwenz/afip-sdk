@@ -10,6 +10,13 @@ import { lockVoucher, unlockVoucher } from "../utils/voucherLock"
 import { parseSoapFault } from "../utils/parseSoapFault"
 import { getSoapBody } from "../utils/getSoapBody"
 
+// const FEV1_NS = 'xmlns="http://ar.gov.afip.dif.FEV1/"'
+
+const SOAP_ACTIONS = {
+  LAST_VOUCHER: "http://ar.gov.afip.dif.FEV1/FECompUltimoAutorizado",
+  CREATE_INVOICE: "http://ar.gov.afip.dif.FEV1/FECAESolicitar"
+}
+
 export class WSFE {
 
   constructor(private auth: WSAA, private cuit: number, private production = false) { }
@@ -25,20 +32,20 @@ export class WSFE {
     const { token, sign } = await this.auth.login()
 
     const xml = `
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
- <soapenv:Body>
-  <FECompUltimoAutorizado>
-   <Auth>
-    <Token>${token}</Token>
-    <Sign>${sign}</Sign>
-    <Cuit>${this.cuit}</Cuit>
-   </Auth>
-   <PtoVta>${pv}</PtoVta>
-   <CbteTipo>${tipo}</CbteTipo>
-  </FECompUltimoAutorizado>
- </soapenv:Body>
-</soapenv:Envelope>
-`
+          <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+          <soapenv:Body>
+            <FECompUltimoAutorizado xmlns="http://ar.gov.afip.dif.FEV1/">
+            <Auth>
+              <Token>${token}</Token>
+              <Sign>${sign}</Sign>
+              <Cuit>${this.cuit}</Cuit>
+            </Auth>
+            <PtoVta>${pv}</PtoVta>
+            <CbteTipo>${tipo}</CbteTipo>
+            </FECompUltimoAutorizado>
+          </soapenv:Body>
+          </soapenv:Envelope>
+          `
 
     let data
 
@@ -47,7 +54,7 @@ export class WSFE {
       const response = await axios.post(this.url, xml, {
         headers: {
           "Content-Type": "text/xml;charset=UTF-8",
-          "SOAPAction": ""
+          "SOAPAction": SOAP_ACTIONS.LAST_VOUCHER
         }
       })
 
@@ -74,7 +81,9 @@ export class WSFE {
   async createInvoice(data: CreateInvoiceData) {
 
     await lockVoucher()
+
     try {
+
       validateInvoice(data)
 
       const calc = calculateInvoice(data.items)
@@ -86,7 +95,12 @@ export class WSFE {
 
       const next = last + 1
 
+      console.log("AFIP last voucher:", last)
+      console.log("Next voucher:", next)
+
       const { token, sign } = await this.auth.login()
+
+      const isFacturaC = data.tipoComprobante === 11
 
       const ivaXML = Object.entries(calc.ivaGroups)
         .map(([rate, amount]) => {
@@ -103,24 +117,36 @@ export class WSFE {
   <BaseImp>${base}</BaseImp>
   <Importe>${amount}</Importe>
 </AlicIva>`
+
         })
         .join("")
+
+      const ivaBlock = isFacturaC
+        ? ""
+        : `
+<Iva>
+  ${ivaXML}
+</Iva>`
 
       const xml = `
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
  <soapenv:Body>
-  <FECAESolicitar>
+  <FECAESolicitar xmlns="http://ar.gov.afip.dif.FEV1/">
+
    <Auth>
     <Token>${token}</Token>
     <Sign>${sign}</Sign>
     <Cuit>${this.cuit}</Cuit>
    </Auth>
+
    <FeCAEReq>
+
     <FeCabReq>
      <CantReg>1</CantReg>
      <PtoVta>${data.puntoVenta}</PtoVta>
      <CbteTipo>${data.tipoComprobante}</CbteTipo>
     </FeCabReq>
+
     <FeDetReq>
      <FECAEDetRequest>
 
@@ -128,29 +154,32 @@ export class WSFE {
 
       <DocTipo>${data.docTipo}</DocTipo>
       <DocNro>${data.docNro}</DocNro>
+      ${data.condicionIVAReceptorId
+          ? `<CondicionIVAReceptorId>${data.condicionIVAReceptorId}</CondicionIVAReceptorId>`
+          : ""}
 
       <CbteDesde>${next}</CbteDesde>
       <CbteHasta>${next}</CbteHasta>
 
       <CbteFch>${new Date().toISOString().slice(0, 10).replace(/-/g, "")}</CbteFch>
 
-      <ImpTotal>${calc.total}</ImpTotal>
+      <ImpTotal>${isFacturaC ? calc.neto : calc.total}</ImpTotal>
       <ImpTotConc>0</ImpTotConc>
       <ImpNeto>${calc.neto}</ImpNeto>
       <ImpOpEx>0</ImpOpEx>
-      <ImpIVA>${calc.totalIVA}</ImpIVA>
+      <ImpIVA>${isFacturaC ? 0 : calc.totalIVA}</ImpIVA>
       <ImpTrib>0</ImpTrib>
 
       <MonId>${data.moneda || "PES"}</MonId>
       <MonCotiz>1</MonCotiz>
 
-      <Iva>
-        ${ivaXML}
-      </Iva>
+      ${ivaBlock}
 
      </FECAEDetRequest>
     </FeDetReq>
+
    </FeCAEReq>
+
   </FECAESolicitar>
  </soapenv:Body>
 </soapenv:Envelope>
@@ -163,7 +192,7 @@ export class WSFE {
         const response = await axios.post(this.url, xml, {
           headers: {
             "Content-Type": "text/xml;charset=UTF-8",
-            "SOAPAction": ""
+            "SOAPAction": SOAP_ACTIONS.CREATE_INVOICE
           }
         })
 
@@ -174,6 +203,7 @@ export class WSFE {
         parseSoapFault(err.response?.data)
 
         throw err
+
       }
 
       const parsed = await parseXML(resp)
@@ -196,12 +226,14 @@ export class WSFE {
         cae,
         caeVto,
         comprobante: next,
-        total: calc.total
+        total: isFacturaC ? calc.neto : calc.total
       }
+
     } finally {
 
       unlockVoucher()
 
     }
+
   }
 }
